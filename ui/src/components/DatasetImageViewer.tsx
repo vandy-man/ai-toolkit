@@ -217,6 +217,45 @@ export default function DatasetImageViewer({
     setImageAtIndex(currentIndex + 1);
   }, [currentIndex, imageList.length, setImageAtIndex]);
 
+  const [cropping, setCropping] = useState(false);
+  const [cropPct, setCropPct] = useState('7');
+  const [imgVersion, setImgVersion] = useState(0);
+  // 每次打开/切图换一个新版本号: 查看 URL 永远唯一, 不吃任何缓存副本
+  const [openSeq, setOpenSeq] = useState(() => Date.now());
+  useEffect(() => {
+    setOpenSeq(Date.now());
+  }, [imgPath]);
+
+  const handleCropBottom = useCallback(() => {
+    if (!imgPath || cropping || isVideo(imgPath) || isAudio(imgPath)) return;
+    let pct = parseFloat((cropPct ?? '').trim());
+    if (!Number.isFinite(pct)) pct = 7;
+    pct = Math.min(30, Math.max(1, pct));
+    setCropping(true);
+    apiClient
+      .post('/api/img/crop', { imgPath, bottomPct: pct })
+      .then(res => {
+        setImgVersion(v => v + 1); // 强制查看器重取图片
+        refreshImages?.(); // 刷新网格
+        openConfirm({
+          title: '裁剪完成',
+          message: `已裁 ${pct}%，新尺寸 ${res.data?.size ?? '?'}，缓存已刷新。`,
+          type: 'info',
+          confirmText: 'OK',
+        });
+      })
+      .catch((err: any) => {
+        openConfirm({
+          title: '裁剪失败',
+          message: err?.response?.data?.error ?? err?.message ?? 'Unknown error',
+          type: 'danger',
+          confirmText: 'OK',
+        });
+      })
+      .finally(() => setCropping(false));
+  }, [imgPath, cropping, cropPct]);
+
+
   const handleDelete = useCallback(() => {
     if (!imgPath) return;
     openConfirm({
@@ -438,7 +477,7 @@ export default function DatasetImageViewer({
                     <TransformComponent>
                       <div className="relative">
                         <img
-                          src={`/api/img/${encodeFilePathForUrl(imgPath)}`}
+                          src={`/api/img/${encodeFilePathForUrl(imgPath)}?v=${openSeq}&c=${imgVersion}`}
                           alt="Dataset Image"
                           draggable={false}
                           className="w-auto h-auto max-w-full max-h-[50vh] sm:max-h-[90vh] object-contain select-none !pointer-events-auto"
@@ -479,6 +518,29 @@ export default function DatasetImageViewer({
                   >
                     <SquareDashed />
                   </button>
+                )}
+                {imgPath && !isVideo(imgPath) && !isAudio(imgPath) && (
+                  <div className="bg-gray-900 rounded-full p-1 flex items-center gap-1 opacity-60 hover:opacity-100">
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      step={0.5}
+                      defaultValue={7}
+                      onChange={e => setCropPct(e.target.value)}
+                      title="裁剪底部百分比"
+                      className="w-12 bg-gray-800 border border-gray-600 rounded-full px-2 py-0.5 text-xs text-center"
+                    />
+                    <button
+                      type="button"
+                      disabled={cropping}
+                      onClick={handleCropBottom}
+                      title="裁剪底部（去水印，原地无备份）"
+                      className="rounded-full px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 leading-[16px]"
+                    >
+                      {cropping ? '...' : '裁剪'}
+                    </button>
+                  </div>
                 )}
                 <div className="bg-gray-900 rounded-full p-1 leading-[0px] opacity-50 hover:opacity-100">
                   <Menu>

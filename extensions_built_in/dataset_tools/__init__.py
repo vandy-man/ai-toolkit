@@ -1,6 +1,16 @@
 from toolkit.extension import Extension
 
 
+class ImageCropperExtension(Extension):
+    uid = "image_cropper"
+    name = "Image Cropper"
+
+    @classmethod
+    def get_process(cls):
+        from .ImageCropper import ImageCropper
+        return ImageCropper
+
+
 class DatasetToolsExtension(Extension):
     uid = "dataset_tools"
 
@@ -39,5 +49,5 @@ class SuperTaggerExtension(Extension):
 
 
 AI_TOOLKIT_EXTENSIONS = [
-    SyncFromCollectionExtension, DatasetToolsExtension, SuperTaggerExtension
+    SyncFromCollectionExtension, DatasetToolsExtension, SuperTaggerExtension, ImageCropperExtension
 ]

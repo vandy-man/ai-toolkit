@@ -115,6 +115,22 @@ const CaptionSimpleJob: React.FC<Props> = ({ jobConfig, setJobConfig, gpuIDs, se
           />
         </div>
       )}
+      {additionalSections.includes('caption.trigger_word') && (
+        <div className="mt-4">
+          <TextInput
+            label="Trigger Word"
+            value={jobConfig.config.process[0].caption.trigger_word || ''}
+            onChange={value => {
+              if (value?.trim() === '') {
+                //@ts-ignore
+                value = undefined;
+              }
+              setJobConfig(value, 'config.process[0].caption.trigger_word');
+            }}
+            placeholder="e.g. chry — prepended to every generated caption"
+          />
+        </div>
+      )}
       {additionalSections.includes('caption.fixed_caption') && (
         <div className="mt-4">
           <TextInput

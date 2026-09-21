@@ -1,6 +1,6 @@
 import React from 'react';
 import useFilesList from '@/hooks/useFilesList';
-import { Loader2, AlertCircle, Download, Box, Brain, Trash2, SlidersHorizontal, Info } from 'lucide-react';
+import { Loader2, AlertCircle, Download, Box, Brain, Trash2, SlidersHorizontal, Info, Copy, Check } from 'lucide-react';
 import { openMergeLoRAsModal } from './MergeLoRAsModal';
 import { openSafetensorsInfoModal } from './SafetensorsInfoModal';
 import { getFilename, getFoldername, encodeFilePathForUrl } from '@/utils/basic';
@@ -9,6 +9,22 @@ import { apiClient } from '@/utils/api';
 
 export default function FilesWidget({ jobID, jobName }: { jobID: string; jobName: string }) {
   const { files, status, refreshFiles } = useFilesList(jobID, 5000);
+  const [copiedPath, setCopiedPath] = React.useState<string | null>(null);
+  const [copyingPath, setCopyingPath] = React.useState<string | null>(null);
+
+  const handleCopyToComfy = (filePath: string) => {
+    setCopyingPath(filePath);
+    apiClient
+      .post('/api/files/copy_to_comfy', { filePath })
+      .then(() => {
+        setCopiedPath(filePath);
+        setTimeout(() => setCopiedPath(cur => (cur === filePath ? null : cur)), 2500);
+      })
+      .catch(error => {
+        console.error('Error copying to ComfyUI:', error);
+      })
+      .finally(() => setCopyingPath(null));
+  };
 
   const isOptimizerFile = (filePath: string) => getFilename(filePath) === 'optimizer.pt';
   const checkpointFiles = files.filter(file => !isOptimizerFile(file.path));
@@ -125,6 +141,20 @@ export default function FilesWidget({ jobID, jobName }: { jobID: string; jobName
                         <Info className="w-3 h-3 text-sky-400" />
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyToComfy(file.path)}
+                      className="bg-emerald-500 bg-opacity-0 group-hover:bg-opacity-10 hover:!bg-opacity-30 rounded-full p-1 transition-all"
+                      title="Copy to ComfyUI loras"
+                    >
+                      {copyingPath === file.path ? (
+                        <Loader2 className="w-3 h-3 text-emerald-500 animate-spin" />
+                      ) : copiedPath === file.path ? (
+                        <Check className="w-3 h-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3 h-3 text-emerald-500" />
+                      )}
+                    </button>
                     <a
                       target="_blank"
                       href={`/api/files/${encodeFilePathForUrl(file.path)}`}

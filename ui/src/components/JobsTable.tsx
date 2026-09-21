@@ -137,7 +137,7 @@ export default function JobsTable({ onlyActive = false, job_type = null }: JobsT
           );
         }
         if (row.job_type === 'caption') {
-          let splits = row.job_ref.split(/[/\\]/);
+          let splits = (row.job_ref ?? '').split(/[/\\]/);
           const datasetPath = `${splits[splits.length - 1]}`;
           href = `/datasets/${datasetPath}`;
           title = (

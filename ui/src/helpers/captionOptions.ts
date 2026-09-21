@@ -1,7 +1,7 @@
 import { CloudLora, GroupedSelectOption, SelectOption } from "@/types";
 
 type CaptionGroup = 'image' | 'music' | 'video' | 'image/video' | 'image/video/sound';
-type AdditionalSections = 'caption.model_name_or_path2' | 'caption.caption_prompt' | 'caption.max_res' | 'caption.max_new_tokens' | 'caption.fixed_caption' | 'caption.caption_format' | 'caption.extract_vocals_before_transcribe' | 'caption.keep_timestamps' | 'caption.thinking' | 'caption.batch_size' | 'caption.layer_offloading' | 'caption.mtp' | 'caption.cuda_graph' | 'caption.vision_bf16' | 'caption.video_fps' | 'caption.system_prompt';
+type AdditionalSections = 'caption.model_name_or_path2' | 'caption.caption_prompt' | 'caption.max_res' | 'caption.max_new_tokens' | 'caption.fixed_caption' | 'caption.caption_format' | 'caption.extract_vocals_before_transcribe' | 'caption.keep_timestamps' | 'caption.thinking' | 'caption.batch_size' | 'caption.layer_offloading' | 'caption.mtp' | 'caption.cuda_graph' | 'caption.vision_bf16' | 'caption.video_fps' | 'caption.system_prompt' | 'caption.trigger_word';
 
 export interface CaptionOption {
     name: string;
@@ -177,6 +177,7 @@ export const captionerTypes: CaptionOption[] = [
             'caption.max_res',
             'caption.max_new_tokens',
             'caption.thinking',
+            'caption.trigger_word',
         ],
     },
     {

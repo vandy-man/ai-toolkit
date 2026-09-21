@@ -128,6 +128,25 @@ export default function Settings() {
                     placeholder="Enter models folder path"
                   />
                 </div>
+
+                <div>
+                  <label htmlFor="COMFYUI_LORAS_DIR" className="block text-sm font-medium mb-2">
+                    ComfyUI Loras Folder Path
+                    <div className="text-gray-500 text-sm ml-1">
+                      Target directory of the "Copy to ComfyUI" button on job checkpoints. Must be an
+                      absolute path. Leave blank to use the default.
+                    </div>
+                  </label>
+                  <input
+                    type="text"
+                    id="COMFYUI_LORAS_DIR"
+                    name="COMFYUI_LORAS_DIR"
+                    value={settings.COMFYUI_LORAS_DIR || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gray-600 focus:border-transparent"
+                    placeholder="Enter ComfyUI loras folder path"
+                  />
+                </div>
               </div>
             </div>
           </div>

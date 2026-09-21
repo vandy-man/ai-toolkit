@@ -88,8 +88,9 @@ export default function SampleImages({ job }: SampleImagesProps) {
     if (job?.job_config) {
       const jobConfig = JSON.parse(job.job_config) as JobConfig;
       const sampleConfig = jobConfig.config.process[0].sample;
+      if (!sampleConfig) return 10; // caption 等任务没有 sample 配置
       const numPrompts = sampleConfig.prompts ? sampleConfig.prompts.length : 0;
-      const numSamples = sampleConfig.samples.length;
+      const numSamples = sampleConfig.samples ? sampleConfig.samples.length : 0;
       return Math.max(numPrompts, numSamples, 1);
     }
     return 10;

@@ -155,8 +155,10 @@ export default function SampleImageViewer({
   const sampleItem = useMemo<SampleItem | null>(() => {
     if (!sampleConfig) return null;
     if (imgInfo.promptIdx < 0) return null;
-    if (imgInfo.promptIdx >= sampleConfig.samples.length) return null;
-    return sampleConfig.samples[imgInfo.promptIdx];
+    // samples 数组是可选的 (只有 prompts 时不存在)
+    const samples = sampleConfig.samples ?? [];
+    if (imgInfo.promptIdx >= samples.length) return null;
+    return samples[imgInfo.promptIdx];
   }, [sampleConfig, imgInfo.promptIdx]);
 
   const controlImages = useMemo<string[]>(() => {

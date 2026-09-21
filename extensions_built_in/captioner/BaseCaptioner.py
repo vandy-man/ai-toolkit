@@ -43,6 +43,7 @@ class CaptionConfig:
         self.low_vram = kwargs.get("low_vram", False)
         self.caption_extension = kwargs.get("caption_extension", "txt")
         self.recaption = kwargs.get("recaption", False)
+        self.trigger_word = kwargs.get("trigger_word", None)
         self.max_res = kwargs.get("max_res", 512)
         self.max_new_tokens = kwargs.get("max_new_tokens", 128)
         self.thinking = kwargs.get("thinking", False)
@@ -180,6 +181,10 @@ class BaseCaptioner(BaseExtensionProcess):
         return _CAPTION_TOKEN_RE.sub(sub, prompt)
 
     def save_caption_for_file(self, file_path: str, caption: str):
+        # 触发词前置 (配置 caption.trigger_word)
+        trigger = getattr(self.caption_config, "trigger_word", None)
+        if trigger and not caption.startswith(trigger):
+            caption = f"{trigger}, {caption}"
         filename_no_ext = os.path.splitext(file_path)[0]
         caption_file_path = f"{filename_no_ext}.{self.caption_config.caption_extension}"
         # delete it if it already exists

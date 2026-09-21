@@ -192,6 +192,8 @@ class NetworkConfig:
         self.conv_alpha: float = kwargs.get('conv_alpha', self.conv)
         self.dropout: Union[float, None] = kwargs.get('dropout', None)
         self.network_kwargs: dict = kwargs.get('network_kwargs', {})
+        # 以现成 LoRA 为起点训练: 指向同构(同底模/rank/目标模块) LoRA 文件
+        self.init_weights_path: Union[str, None] = kwargs.get('init_weights_path', None)
 
         self.lorm_config: Union[LoRMConfig, None] = None
         lorm = kwargs.get('lorm', None)

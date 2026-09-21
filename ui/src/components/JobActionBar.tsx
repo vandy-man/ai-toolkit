@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Eye, Trash2, Pen, Play, Pause, Cog, X, Copy, Save, OctagonX, Image } from 'lucide-react';
+import { Eye, Trash2, Pen, Play, Pause, Cog, X, Copy, Save, OctagonX, Image, CircleCheck } from 'lucide-react';
 import { LuLoader } from 'react-icons/lu';
 import { Button } from '@headlessui/react';
 import { openConfirm } from '@/components/ConfirmModal';
@@ -11,6 +11,7 @@ import {
   deleteJob,
   getAvaliableJobActions,
   markJobAsStopped,
+  markJobAsCompleted,
   saveJobNow,
   sampleJobNow,
 } from '@/utils/jobs';
@@ -31,7 +32,7 @@ interface JobActionBarProps {
   menuAnchor?: 'bottom' | 'top end';
 }
 
-type PendingAction = 'start' | 'remove' | 'stop' | 'delete' | 'save' | 'sample' | 'markStopped';
+type PendingAction = 'start' | 'remove' | 'stop' | 'delete' | 'save' | 'sample' | 'markStopped' | 'markCompleted';
 
 // If the job never reports a state change (e.g. the request silently failed
 // server-side), unlock the bar after this long so it can't stay stuck.
@@ -99,7 +100,7 @@ export default function JobActionBar({
   const menuItemDisabledClass = `${menuItemClass} opacity-40 cursor-not-allowed`;
   const spinner = <LuLoader className={`${iconSizeClass} animate-spin`} />;
   const menuSpinner = <LuLoader className="w-4 h-4 animate-spin" />;
-  const menuPending = pending === 'save' || pending === 'sample' || pending === 'markStopped';
+  const menuPending = pending === 'save' || pending === 'sample' || pending === 'markStopped' || pending === 'markCompleted';
 
   return (
     <div className={`flex items-center flex-shrink-0 ${className ?? ''}`}>
@@ -299,6 +300,29 @@ export default function JobActionBar({
             >
               {pending === 'markStopped' ? menuSpinner : <OctagonX className="w-4 h-4" />}
               Mark as Stopped
+            </div>
+          </MenuItem>
+          <MenuItem disabled={isBusy}>
+            <div
+              className={isBusy ? menuItemDisabledClass : menuItemEnabledClass}
+              onClick={() => {
+                if (isBusy) return;
+                let message = `Are you sure you want to mark this job as completed? This will set the job status to 'completed' if the status is hung. Only do this if you are 100% sure the job finished. This will NOT stop a still-running job.`;
+                openConfirm({
+                  title: 'Mark Job as Completed',
+                  message: message,
+                  type: 'warning',
+                  confirmText: 'Mark as Completed',
+                  onConfirm: () =>
+                    runAction('markCompleted', async () => {
+                      await markJobAsCompleted(job.id);
+                      onRefresh && onRefresh();
+                    }),
+                });
+              }}
+            >
+              {pending === 'markCompleted' ? menuSpinner : <CircleCheck className="w-4 h-4" />}
+              Mark as Completed
             </div>
           </MenuItem>
         </MenuItems>

@@ -8,6 +8,7 @@ import DatasetImageCard from '@/components/DatasetImageCard';
 import DatasetImageViewer from '@/components/DatasetImageViewer';
 import { Button } from '@headlessui/react';
 import AddImagesModal, { openImagesModal, useOpenImagesModalOnDrag } from '@/components/AddImagesModal';
+import FaceClusterModal from '@/components/FaceClusterModal';
 import { TopBar, MainContent } from '@/components/layout';
 import { apiClient } from '@/utils/api';
 import useSettings from '@/hooks/useSettings';
@@ -29,6 +30,8 @@ export default function DatasetPage({ params }: { params: { datasetName: string 
   const [captionRefreshKeys, setCaptionRefreshKeys] = useState<Record<string, number>>({});
   const [scrollParent, setScrollParent] = useState<HTMLDivElement | null>(null);
   const [captionBarHeight, setCaptionBarHeight] = useState(0);
+  const [imageVersion, setImageVersion] = useState(0);
+  const [datasetsRoot, setDatasetsRoot] = useState('');
   const scrollParentCallback = useCallback((el: HTMLDivElement | null) => setScrollParent(el), []);
   const isRefreshingRef = useRef(false);
 
@@ -45,6 +48,7 @@ export default function DatasetPage({ params }: { params: { datasetName: string 
         // keep the payload small. Plain concat rebuilds the native absolute path on any OS.
         // Server already sorts; avoid a client-side sort on large lists.
         const root = data.root;
+        setDatasetsRoot(root);
         setImgList(data.images.map((subPath: string) => ({ img_path: root + subPath })));
         setStatus('success');
       })
@@ -54,6 +58,7 @@ export default function DatasetPage({ params }: { params: { datasetName: string 
       })
       .finally(() => {
         isRefreshingRef.current = false;
+        setImageVersion(v => v + 1); // 让卡片带新版本号重取 blob
       });
   };
   useOpenImagesModalOnDrag(datasetName, () => refreshImageList(datasetName));
@@ -185,6 +190,7 @@ export default function DatasetPage({ params }: { params: { datasetName: string 
                   onDelete={() => refreshImageList(datasetName)}
                   onImageClick={() => setSelectedImgPath(img.img_path)}
                   captionRefreshKey={captionRefreshKeys[img.img_path] || 0}
+                  imageVersion={imageVersion}
                   observerRoot={scrollParent}
                   captionExt={captionExt}
                 />
@@ -198,6 +204,7 @@ export default function DatasetPage({ params }: { params: { datasetName: string 
         <div className="h-6" />
       </MainContent>
       <AddImagesModal />
+      <FaceClusterModal datasetsRoot={datasetsRoot} />
       {isSettingsLoaded && (
         <CaptionMonitor
           datasetPath={`${pathJoin(settings.DATASETS_FOLDER, datasetName)}`}

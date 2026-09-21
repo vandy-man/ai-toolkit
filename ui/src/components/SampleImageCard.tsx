@@ -153,6 +153,16 @@ const SampleImageCard: React.FC<SampleImageCardProps> = ({
             selected ? 'inset-2' : 'inset-0'
           } ${isVisible && !isItAudio && !loaded ? 'animate-pulse' : ''}`}
         >
+          {(() => {
+            // 文件名里的步数角标: <timestamp>__<step>_<idx>.<ext>
+            const m = imageUrl.split(/[\\/]/).pop()?.match(/__0*(\d+)_\d+\.\w+$/);
+            if (!m) return null;
+            return (
+              <div className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded bg-black/70 text-[10px] font-mono text-emerald-300 pointer-events-none">
+                step {m[1]}
+              </div>
+            );
+          })()}
           {isVisible ? (
             isItText ? (
               // font size scales with the card and the text length: a square of side W holds

@@ -18,6 +18,7 @@ interface DatasetImageCardProps {
   observerRoot?: Element | null;
   rootMargin?: string;
   captionExt?: string;
+  imageVersion?: number;
 }
 
 const DatasetImageCard: React.FC<DatasetImageCardProps> = ({
@@ -32,6 +33,7 @@ const DatasetImageCard: React.FC<DatasetImageCardProps> = ({
   observerRoot = null,
   rootMargin = '200px 0px',
   captionExt = 'txt',
+  imageVersion = 0,
 }) => {
   const [loaded, setLoaded] = useState<boolean>(false);
   const [artFailed, setArtFailed] = useState(false);
@@ -84,7 +86,7 @@ const DatasetImageCard: React.FC<DatasetImageCardProps> = ({
     let objectUrl: string | null = null;
 
     const timer = window.setTimeout(() => {
-      fetch(`/api/img/${encodeFilePathForUrl(imageUrl)}?thumb=1`, { signal: controller.signal })
+      fetch(`/api/img/${encodeFilePathForUrl(imageUrl)}?thumb=1${imageVersion ? `&v=${imageVersion}` : ''}`, { signal: controller.signal })
         .then(r => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           if ((r.headers.get('content-type') || '').startsWith('video/')) {
@@ -117,7 +119,7 @@ const DatasetImageCard: React.FC<DatasetImageCardProps> = ({
       setStreamVideo(false);
       setLoaded(false);
     };
-  }, [imageUrl, isItAudio, isVisible]);
+  }, [imageUrl, isItAudio, isVisible, imageVersion]);
 
   const combinedRefreshKey = captionRefreshKey + pollTick;
   const { caption: fetchedCaption, isLoaded: isCaptionLoaded } = useCaptionBatch(

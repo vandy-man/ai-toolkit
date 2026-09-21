@@ -98,6 +98,22 @@ export const markJobAsStopped = (jobID: string) => {
   });
 };
 
+export const markJobAsCompleted = (jobID: string) => {
+  return new Promise<void>((resolve, reject) => {
+    apiClient
+      .get(`/api/jobs/${jobID}/mark_completed`)
+      .then(res => res.data)
+      .then(data => {
+        console.log('Job marked as completed:', data);
+        resolve();
+      })
+      .catch(error => {
+        console.error('Error marking job as completed:', error);
+        reject(error);
+      });
+  });
+};
+
 export const getJobConfig = (job: Job) => {
   return JSON.parse(job.job_config) as JobConfig;
 };

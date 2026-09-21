@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/server/prisma';
 import { defaultTrainFolder, defaultDatasetsFolder, defaultModelsFolder } from '@/paths';
-import { flushCache } from '@/server/settings';
+import { flushCache, getComfyLorasDir } from '@/server/settings';
 
 export async function GET() {
   try {
@@ -25,6 +25,7 @@ export async function GET() {
       // if MODELS_PATH is not set, use default
       settingsObject.MODELS_PATH = defaultModelsFolder;
     }
+    settingsObject.COMFYUI_LORAS_DIR = await getComfyLorasDir();
     return NextResponse.json(settingsObject);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -34,31 +35,27 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { HF_TOKEN, TRAINING_FOLDER, DATASETS_FOLDER, MODELS_PATH } = body;
+    const { HF_TOKEN, TRAINING_FOLDER, DATASETS_FOLDER, MODELS_PATH, COMFYUI_LORAS_DIR } = body;
 
-    // Upsert both settings
-    await Promise.all([
-      prisma.settings.upsert({
-        where: { key: 'HF_TOKEN' },
-        update: { value: HF_TOKEN },
-        create: { key: 'HF_TOKEN', value: HF_TOKEN },
-      }),
-      prisma.settings.upsert({
-        where: { key: 'TRAINING_FOLDER' },
-        update: { value: TRAINING_FOLDER },
-        create: { key: 'TRAINING_FOLDER', value: TRAINING_FOLDER },
-      }),
-      prisma.settings.upsert({
-        where: { key: 'DATASETS_FOLDER' },
-        update: { value: DATASETS_FOLDER },
-        create: { key: 'DATASETS_FOLDER', value: DATASETS_FOLDER },
-      }),
-      prisma.settings.upsert({
-        where: { key: 'MODELS_PATH' },
-        update: { value: MODELS_PATH },
-        create: { key: 'MODELS_PATH', value: MODELS_PATH },
-      }),
-    ]);
+    // 缺失的键跳过, 避免把 undefined 写进 NOT NULL 列
+    const entries: Record<string, string> = {
+      HF_TOKEN,
+      TRAINING_FOLDER,
+      DATASETS_FOLDER,
+      MODELS_PATH,
+      COMFYUI_LORAS_DIR,
+    };
+    await Promise.all(
+      Object.entries(entries)
+        .filter(([, value]) => typeof value === 'string')
+        .map(([key, value]) =>
+          prisma.settings.upsert({
+            where: { key },
+            update: { value },
+            create: { key, value },
+          }),
+        ),
+    );
 
     flushCache();
 

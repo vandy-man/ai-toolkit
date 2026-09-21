@@ -131,7 +131,8 @@ export const handleModelArchChange = (
 
   // update samples
   const hasSampleCtrlImg = newArch?.additionalSections?.includes('sample.ctrl_img') || false;
-  const samples = jobConfig.config.process[0].sample.samples.map(sample => {
+  // samples 数组是可选的 (只有 prompts 时不存在)
+  const samples = (jobConfig.config.process[0].sample.samples ?? []).map(sample => {
     const newSample = objectCopy(sample);
     if (!hasSampleCtrlImg) {
       delete newSample.ctrl_img; // remove ctrl_img if not applicable

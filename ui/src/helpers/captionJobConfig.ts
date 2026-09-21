@@ -8,11 +8,11 @@ export const defaultCaptionJobConfig: CaptionJobConfig = {
     name: 'Caption Directory',
     process: [
       {
-        type: 'Qwen3OmniCaptioner',
+        type: 'Qwen3VLCaptioner',
         sqlite_db_path: './aitk_db.db',
         device: 'cuda',
         caption: {
-          model_name_or_path: 'ai-toolkit/Qwen3-Omni-30B-A3B-Thinking',
+          model_name_or_path: 'Qwen/Qwen3-VL-8B-Instruct',
           dtype: 'bf16',
           quantize: true,
           qtype: 'convrot8',
@@ -20,13 +20,12 @@ export const defaultCaptionJobConfig: CaptionJobConfig = {
           extensions: ['mp4', 'mov', 'webm', 'mkv', 'avi', 'jpg', 'jpeg', 'png', 'bmp', 'webp', 'mp3', 'wav', 'flac', 'ogg'],
           path_to_caption: '',
           recaption: false,
-          compile: true,
+          compile: false,
           caption_extension: 'txt',
           caption_prompt:
-            "Caption this video as if you were going to try to generate it with a video generator. Describe the visual content, how it moves and changes over time, and the camera work. Also describe the audio, including any speech, music, or sound effects, and transcribe spoken dialogue verbatim in quotes. Be decisive by stating things as they are. Do not say things like \"It appears that\" Or \"possibly\". No preamble. Just get to the point.",
+            "Caption this image as if you were going to try to generate it with an image generator. Be thurough and describe everything in the image. Be decisive by stating things as they are. Do not say things like \"It appears that\" Or \"possibly\". Start out with things like \"A person on the beach\" or \"A black dragon\". No preamble. Just get to the point.",
           max_res: 512,
-          max_new_tokens: 512,
-          batch_size: 1,
+          max_new_tokens: 128,
         },
       },
     ],

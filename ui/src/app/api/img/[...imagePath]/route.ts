@@ -63,9 +63,12 @@ export async function GET(request: NextRequest, { params }: { params: { imagePat
     // transparency survives, everything else stays <name>.<ext>.jpg.
     if (request.nextUrl.searchParams.has('thumb')) {
       const thumbBase = path.join(path.dirname(resolved), '.thumbs', path.basename(resolved));
+      // 源文件比缩略图新 = 缩略图过期(原地重写过, 如水印裁剪), 视为缺失:
+      // 回退原图保证内容正确, fileServer 侧会顺带重建缩略图
+      const srcStat = await fs.promises.stat(resolved).catch(() => null);
       for (const thumbPath of [`${thumbBase}.png`, `${thumbBase}.jpg`]) {
         const thumbStat = await fs.promises.stat(thumbPath).catch(() => null);
-        if (thumbStat && thumbStat.isFile()) {
+        if (thumbStat && thumbStat.isFile() && (!srcStat || thumbStat.mtimeMs >= srcStat.mtimeMs)) {
           resolved = thumbPath;
           break;
         }
@@ -86,9 +89,12 @@ export async function GET(request: NextRequest, { params }: { params: { imagePat
     const ext = path.extname(resolved).toLowerCase();
     const contentType = contentTypeMap[ext] || 'application/octet-stream';
 
-    // Weak ETag from inode/size/mtime — cheap and stable enough for revalidation
+    // Weak ETag from inode/size/mtime — cheap and stable enough for revalidation.
+    // Dataset files are mutable (watermark crop rewrites in place), so no `immutable`
+    // and only a short max-age — otherwise the browser shows stale watermarked
+    // images for a day after cropping.
     const etag = `W/"${stat.ino.toString(36)}-${stat.size.toString(36)}-${stat.mtimeMs.toString(36)}"`;
-    const cacheControl = 'public, max-age=86400, immutable';
+    const cacheControl = 'public, max-age=300';
 
     const ifNoneMatch = request.headers.get('if-none-match');
     if (ifNoneMatch && ifNoneMatch === etag) {

@@ -319,9 +319,15 @@ async function serveFile(req: http.IncomingMessage, res: http.ServerResponse, pr
       const thumbBase = path.join(path.dirname(resolvedFilePath), '.thumbs', path.basename(resolvedFilePath));
       let thumbPath: string | null = null;
       let thumbStat: fs.Stats | null = null;
+      const srcStatOuter = await fs.promises.stat(resolvedFilePath).catch(() => null);
       for (const candidate of [`${thumbBase}.png`, `${thumbBase}.jpg`]) {
         const stat = await fs.promises.stat(candidate).catch(() => null);
         if (stat && stat.isFile()) {
+          // 源文件比缩略图新 = 过期(原地重写过), 删除旧缩略图走重建
+          if (srcStatOuter && stat.mtimeMs < srcStatOuter.mtimeMs) {
+            fs.promises.unlink(candidate).catch(() => {});
+            continue;
+          }
           thumbPath = candidate;
           thumbStat = stat;
           break;
@@ -370,7 +376,7 @@ async function serveFile(req: http.IncomingMessage, res: http.ServerResponse, pr
       // Weak ETag from inode/size/mtime — cheap and stable enough for
       // revalidation of thumbnails/videos the UI requests over and over.
       const etag = `W/"${stat.ino.toString(36)}-${stat.size.toString(36)}-${stat.mtimeMs.toString(36)}"`;
-      headers['Cache-Control'] = 'public, max-age=86400, immutable';
+      headers['Cache-Control'] = 'public, max-age=300'; // 数据集图片可被原地裁剪, 短缓存+ETag 再验证
       headers['ETag'] = etag;
       if (req.headers['if-none-match'] === etag) {
         res.writeHead(304, { ETag: etag, 'Cache-Control': headers['Cache-Control'] });

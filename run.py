@@ -22,6 +22,57 @@ sys.path.insert(0, os.getcwd())
 from toolkit.win_console import suppress_child_consoles
 suppress_child_consoles()
 
+
+# --- Hub offline guard (2026-09-06) -----------------------------------------
+# worker 上下文里 huggingface_hub 的在线元数据校验(httpx)会挂死: 现象是任务停在
+# 量化/加载阶段, GPU 0%, 全线程 futex 等锁。若本任务引用的 hub 模型均已完整缓存,
+# 直接切离线模式(纯本地加载), 从根上绕开网络校验; 未缓存则保持在线正常下载。
+def _hub_offline_if_cached(job_config_path: str) -> None:
+    try:
+        import json as _json
+
+        def _collect(o, out):
+            if isinstance(o, dict):
+                for k, v in o.items():
+                    if k in ("model_name_or_path", "base_model_name_or_path",
+                             "assistant_lora_path", "vae_path", "text_encoder_path") and isinstance(v, str):
+                        out.append(v)
+                    _collect(v, out)
+            elif isinstance(o, list):
+                for i in o:
+                    _collect(i, out)
+
+        names = []
+        _collect(_json.load(open(job_config_path)), names)
+        if not names:
+            return
+        from huggingface_hub import try_to_load_from_cache
+        for name in names:
+            if os.path.isdir(name) or "/" not in name:  # 本地路径或非 hub id
+                continue
+            cfg_path = try_to_load_from_cache(name, "config.json")
+            if not cfg_path or not os.path.isfile(cfg_path):
+                return  # 有模型没缓存(或拿不准), 保持在线
+            snap = os.path.dirname(cfg_path)
+            if not any(f.endswith(".safetensors") for f in os.listdir(snap)):
+                return  # 缓存不完整(只有配置没权重)
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        import huggingface_hub.constants as _hbc
+        _hbc.HF_HUB_OFFLINE = True
+        try:
+            import transformers.utils.hub as _tuh
+            _tuh.HF_HUB_OFFLINE = True
+        except Exception:
+            pass
+        print("[hub-guard] referenced models fully cached -> offline mode", flush=True)
+    except Exception as e:
+        print(f"[hub-guard] check skipped: {e}", flush=True)
+
+
+if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
+    _hub_offline_if_cached(sys.argv[1])
+# --- end hub offline guard ---------------------------------------------------
+
 # must come before ANY torch or fastai imports
 # import toolkit.cuda_malloc
 

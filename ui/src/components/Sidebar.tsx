@@ -9,6 +9,7 @@ import { createGlobalState } from 'react-global-hooks';
 import ThemeToggle from './ThemeToggle';
 import ThemeLogo from './ThemeLogo';
 import ActiveJobWidget from './ActiveJobWidget';
+import ClearVramButton from './ClearVramButton';
 import OstrisCloudBalance from './OstrisCloudBalance';
 
 export const mobileSidebarState = createGlobalState<boolean>(false);
@@ -84,6 +85,7 @@ const Sidebar = () => {
           ))}
         </ul>
       </nav>
+      <ClearVramButton />
       <ActiveJobWidget />
       <a
         href="https://ostris.com/support"

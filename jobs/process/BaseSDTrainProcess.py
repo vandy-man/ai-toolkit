@@ -1969,6 +1969,17 @@ class BaseSDTrainProcess(BaseTrainProcess):
 
 
                 # todo switch everything to proper mixed precision like this
+                # 以现成 LoRA 为初始权重继续训练 (2026-09-07):
+                # network.init_weights_path 指向同构 LoRA 文件, 如混合人设以主 LoRA 为起点微调
+                init_w = getattr(self.network_config, 'init_weights_path', None)
+                if init_w:
+                    import os as _os
+                    if not _os.path.isfile(init_w):
+                        raise FileNotFoundError(f"network.init_weights_path not found: {init_w}")
+                    print(f"Loading network init weights from {init_w}", flush=True)
+                    self.network.load_weights(init_w)
+                    print("Network init weights loaded", flush=True)
+
                 self.network.force_to(self.device_torch, dtype=torch.float32)
                 # give network to sd so it can use it
                 self.sd.network = self.network

@@ -8,6 +8,7 @@ export interface Settings {
   TRAINING_FOLDER: string;
   DATASETS_FOLDER: string;
   MODELS_PATH: string;
+  COMFYUI_LORAS_DIR: string;
 }
 
 export default function useSettings() {
@@ -16,6 +17,7 @@ export default function useSettings() {
     TRAINING_FOLDER: '',
     DATASETS_FOLDER: '',
     MODELS_PATH: '',
+    COMFYUI_LORAS_DIR: '',
   });
   const [isSettingsLoaded, setIsLoaded] = useState(false);
   useEffect(() => {
@@ -29,6 +31,7 @@ export default function useSettings() {
           TRAINING_FOLDER: data.TRAINING_FOLDER || '',
           DATASETS_FOLDER: data.DATASETS_FOLDER || '',
           MODELS_PATH: data.MODELS_PATH || '',
+          COMFYUI_LORAS_DIR: data.COMFYUI_LORAS_DIR || '',
         });
         setIsLoaded(true);
       })

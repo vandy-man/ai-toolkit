@@ -100,6 +100,8 @@ export default function AddImagesModal() {
   const [doneCount, setDoneCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
   const abortRef = useRef(false);
+  const runningBatchesRef = useRef(0);
+  const failedTotalRef = useRef(0);
   const modalInfoRef = useRef(modalInfo);
   modalInfoRef.current = modalInfo;
 
@@ -151,52 +153,74 @@ export default function AddImagesModal() {
     setTotalCount(0);
     setDoneCount(0);
     setErrorCount(0);
+    failedTotalRef.current = 0;
   }, []);
 
   const processQueue = useCallback(
     async (entries: FileEntry[]) => {
       setIsUploading(true);
       abortRef.current = false;
+      runningBatchesRef.current += 1;
 
       let nextIndex = 0;
+      let errorFiles = 0;
       const runNext = async (): Promise<void> => {
         while (nextIndex < entries.length) {
           if (abortRef.current) return;
           const idx = nextIndex++;
-          await uploadSingleFile(entries[idx]);
+          if ((await uploadSingleFile(entries[idx])) === 'error') errorFiles += 1;
         }
       };
 
       const workers = Array.from({ length: Math.min(MAX_CONCURRENT, entries.length) }, () => runNext());
       await Promise.all(workers);
 
-      setIsUploading(false);
-      if (!abortRef.current) {
-        modalInfoRef.current?.onComplete?.();
-        setModalInfo(null);
-        resetState();
+      failedTotalRef.current += errorFiles;
+      runningBatchesRef.current -= 1;
+      if (runningBatchesRef.current === 0) {
+        setIsUploading(false);
+        // 只有全部成功才自动关窗; 有失败保持窗口, 由用户点 Retry 重试
+        if (!abortRef.current && failedTotalRef.current === 0) {
+          modalInfoRef.current?.onComplete?.();
+          setModalInfo(null);
+          resetState();
+        }
       }
     },
     [uploadSingleFile, setModalInfo, resetState],
   );
 
+  const handleRetry = useCallback(() => {
+    const failed = fileEntries.filter(e => e.status === 'error');
+    if (failed.length === 0) return;
+    setErrorCount(0);
+    failedTotalRef.current = 0;
+    processQueue(failed);
+  }, [fileEntries, processQueue]);
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
 
-      const entries: FileEntry[] = acceptedFiles.map(file => ({
+      const newEntries: FileEntry[] = acceptedFiles.map(file => ({
         id: nextId++,
         file,
         status: 'pending' as FileStatus,
         progress: 0,
       }));
-      setFileEntries(entries);
-      setTotalCount(entries.length);
-      setDoneCount(0);
-      setErrorCount(0);
-      processQueue(entries);
+      setFileEntries(prev => [...prev, ...newEntries]);
+      setTotalCount(prev => prev + newEntries.length);
+      if (!isUploading) {
+        // 空闲态: 遗留的失败行与新文件一起入列(避免新批次全成后关窗丢下旧失败)
+        const failed = fileEntries.filter(e => e.status === 'error');
+        setErrorCount(0);
+        failedTotalRef.current = 0;
+        processQueue([...failed, ...newEntries]);
+      } else {
+        processQueue(newEntries);
+      }
     },
-    [processQueue],
+    [processQueue, isUploading, fileEntries],
   );
 
   const handleCancel = useCallback(() => {
@@ -308,6 +332,15 @@ export default function AddImagesModal() {
               </div>
             </div>
             <div className="bg-gray-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+              {!isUploading && errorCount > 0 && fileEntries.some(e => e.status === 'error') && (
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="mb-2 inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-blue-500 sm:mb-0 sm:ml-3 sm:w-auto"
+                >
+                  Retry Failed ({errorCount})
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleCancel}

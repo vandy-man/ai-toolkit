@@ -71,6 +71,29 @@ export const getHFToken = async () => {
   return token;
 };
 
+// Checkpoints 复制按钮的目标目录: 设置页 > 环境变量 > 默认 ComfyUI 路径
+export const getComfyLorasDir = async () => {
+  const key = 'COMFYUI_LORAS_DIR';
+  let cached = myCache.get(key) as string;
+  if (cached) {
+    return cached;
+  }
+  let row = await prisma.settings.findFirst({
+    where: {
+      key: key,
+    },
+  });
+  let dir =
+    process.env.COMFYUI_LORAS_DIR ||
+    '/mnt/d97f340e-fc7f-4dfb-af7a-d4bea3de38c0/ComfyUI/models/loras';
+  if (row?.value && row.value !== '') {
+    dir = row.value;
+  }
+  dir = path.resolve(dir);
+  myCache.set(key, dir);
+  return dir as string;
+};
+
 export const getDataRoot = async () => {
   const key = 'DATA_ROOT';
   let dataRoot = myCache.get(key) as string;
